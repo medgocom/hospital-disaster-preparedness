@@ -1,0 +1,78 @@
+name: Build Book PDF
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-xetex texlive-lang-japanese fonts-noto-cjk
+
+      - name: Build framework book
+        run: |
+          mkdir -p build
+          pandoc \
+            --pdf-engine=xelatex \
+            -V CJKmainfont="Noto Sans CJK JP" \
+            -V geometry:margin=2.5cm \
+            -V fontsize=11pt \
+            -V documentclass=report \
+            -V title="病院防災フレームワーク" \
+            -V subtitle="27施設のアンケートに基づく実践ガイド" \
+            -V date="$(date +%Y年%m月)" \
+            --toc \
+            --toc-depth=2 \
+            -o build/hospital-disaster-framework.pdf \
+            docs/framework/00-common-actioncard.md \
+            docs/framework/01-electricity.md \
+            docs/framework/02-water.md \
+            docs/framework/03-medical-gas.md \
+            docs/framework/04-communication.md \
+            docs/framework/05-information-systems.md \
+            docs/framework/06-elevator.md \
+            docs/framework/07-hvac.md \
+            docs/framework/08-food-waste-fuel.md \
+            docs/framework/09-organization.md \
+            docs/framework/10-building-structure.md
+
+      - name: Build articles collection
+        run: |
+          pandoc \
+            --pdf-engine=xelatex \
+            -V CJKmainfont="Noto Sans CJK JP" \
+            -V geometry:margin=2.5cm \
+            -V fontsize=11pt \
+            -V documentclass=report \
+            -V title="病院防災マガジン記事集" \
+            -V subtitle="全国27施設・500人超の声から生まれた現実解" \
+            -V date="$(date +%Y年%m月)" \
+            --toc \
+            --toc-depth=2 \
+            -o build/hospital-disaster-articles.pdf \
+            docs/articles/note-intro-free.md \
+            docs/articles/note-001-actioncard.md \
+            docs/articles/note-003-real-bcp.md \
+            docs/articles/note-004-night-action.md \
+            docs/articles/note-005-zoning-fail.md \
+            docs/articles/note-006-water-fail.md \
+            docs/articles/note-007-gas-hvac-fail.md \
+            docs/articles/note-008-digital-silence.md
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: book-pdfs
+          path: build/*.pdf
+          retention-days: 30
