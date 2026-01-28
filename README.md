@@ -57,6 +57,7 @@ hospital-disaster-preparedness/
 
 ## 関連リンク
 
+- **[病院防災BCP 完全版ドラフト（全8章+序章）](HOSPITAL_DISASTER_BCP_FULL_DRAFT.md)** — 全記事を1ファイルに統合した一気読み版
 - Note記事（準備中）
 - Notionダッシュボード（準備中）
 
