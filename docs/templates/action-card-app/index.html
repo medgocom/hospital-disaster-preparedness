@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#b91c1c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>超軽量アクションカード v2.0</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--red:#b91c1c;--red-light:#fef2f2;--green:#16a34a;--green-light:#f0fdf4;--orange:#ea580c;--amber:#d97706;--amber-bg:#fffbeb;--gray:#6b7280;--bg:#f9fafb;--card:#fff;--shadow:0 1px 3px rgba(0,0,0,.12)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;background:var(--bg);color:#1f2937;font-size:16px;line-height:1.6;padding-bottom:72px;-webkit-tap-highlight-color:transparent}
+
+/* Header */
+.header{position:sticky;top:0;z-index:100;background:var(--red);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.header h1{font-size:16px;font-weight:700;letter-spacing:.5px}
+.header .timer{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;min-width:76px;text-align:right}
+.header .timer.inactive{font-size:14px;opacity:.8}
+
+/* Declaration button — distinct amber/orange color */
+.declare-btn{margin:14px 16px;padding:20px;border:none;border-radius:14px;font-size:18px;font-weight:800;color:#fff;cursor:pointer;width:calc(100% - 32px);transition:all .2s;text-align:center;line-height:1.4}
+.declare-btn.ready{background:linear-gradient(135deg,#f59e0b,#ea580c);box-shadow:0 4px 16px rgba(234,88,12,.45);animation:pulse 1.8s infinite}
+.declare-btn .btn-main{display:block;font-size:26px;margin-bottom:6px}
+.declare-btn .btn-sub{display:block;font-size:15px;font-weight:600;opacity:.95}
+.declare-btn.active{background:#374151;box-shadow:none;font-size:15px;animation:none;padding:14px}
+.declare-btn.active .btn-sub{display:none}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+
+/* Cards */
+.card{background:var(--card);margin:14px 16px;border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.card-header{padding:14px 16px;font-size:15px;font-weight:700;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px}
+.card-body{padding:16px}
+
+.section-tag{display:inline-block;background:var(--red);color:#fff;font-size:12px;padding:3px 10px;border-radius:4px;font-weight:700}
+.section-tag.green{background:var(--green)}
+.section-tag.orange{background:var(--orange)}
+.section-tag.gray{background:var(--gray)}
+
+/* SECTION 0 - Immunity */
+.immunity-box{background:var(--red-light);border:2px solid var(--red);border-radius:10px;padding:14px}
+.immunity-box h3{color:var(--red);font-size:16px;margin-bottom:8px}
+.immunity-box .badge{display:inline-block;background:var(--red);color:#fff;padding:5px 12px;border-radius:20px;font-size:13px;font-weight:700;margin-bottom:10px}
+.auth-table{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0}
+.auth-table td{padding:5px 0;border-bottom:1px solid #fecaca}
+.auth-table td:first-child{font-weight:700;width:40%}
+.exemption{background:#fff;border-radius:8px;padding:12px;margin-top:10px;border-left:4px solid var(--red);font-size:14px}
+.exemption strong{color:var(--red);font-size:15px}
+.rule-row{display:flex;justify-content:space-between;padding:8px 0;font-size:14px;font-weight:600}
+.rule-row .label{color:#1f2937}
+.rule-row .value{color:var(--red);font-weight:800}
+.sign-line{margin-top:12px;padding-top:10px;border-top:2px dashed #fca5a5;font-size:14px;color:var(--gray)}
+.sign-field{display:flex;align-items:center;gap:6px;margin-top:8px}
+.sign-field label{font-size:13px;font-weight:700;color:var(--gray);white-space:nowrap}
+.sign-field input{flex:1;border:none;border-bottom:2px solid #fca5a5;background:transparent;font-size:16px;padding:6px 2px;color:#1f2937;font-family:inherit;outline:none}
+.sign-field input:focus{border-bottom-color:var(--red)}
+.sign-field input::placeholder{color:#d1d5db;font-size:13px}
+.sign-field input.filled{font-weight:700;color:var(--red);border-bottom-color:var(--red);border-bottom-style:solid}
+
+/* Check items (embedded in timeline) */
+.check-item{border-bottom:1px solid #e5e7eb;padding:14px 16px}
+.check-item:last-child{border-bottom:none}
+.check-top{display:flex;align-items:flex-start;gap:10px}
+.check-num{width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;background:var(--gray);border-radius:50%;flex-shrink:0}
+.check-num.ok{background:var(--green)}
+.check-num.ng{background:var(--red)}
+.check-info{flex:1;display:flex;flex-direction:column;justify-content:center}
+.check-name{font-weight:800;font-size:18px}
+.check-method{font-size:14px;color:var(--gray);margin-top:4px}
+.check-who{font-size:13px;color:var(--red);font-weight:600;margin-top:4px}
+.check-time{font-size:13px;color:var(--green);margin-top:4px;font-weight:600}
+.check-btns{display:flex;gap:10px;margin-top:12px;padding-left:42px}
+.check-btns button{flex:1;border:2px solid #d1d5db;border-radius:10px;padding:12px 0;font-size:17px;font-weight:800;cursor:pointer;transition:all .15s;background:#fff;color:var(--gray)}
+.btn-ok{border-color:#86efac}
+.btn-ng{border-color:#fca5a5}
+.btn-ok.selected{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-ng.selected{background:var(--red);color:#fff;border-color:var(--red)}
+
+.check-result{padding:14px 16px;font-size:16px;font-weight:700;text-align:center;border-top:2px solid #e5e7eb}
+.check-result.all-ok{background:var(--green-light);color:var(--green)}
+.check-result.has-ng{background:var(--red-light);color:var(--red)}
+
+/* Embedded check section label */
+.check-section-label{background:#fef3c7;padding:12px 16px;font-size:15px;font-weight:700;color:#92400e;border-bottom:1px solid #fde68a}
+
+/* Timeline */
+.timeline-item{display:flex;padding:10px 0;border-bottom:1px solid #f3f4f6;align-items:flex-start}
+.timeline-item:last-child{border-bottom:none}
+.timeline-time{width:76px;font-size:15px;font-weight:800;color:var(--red);flex-shrink:0;padding-top:2px}
+.timeline-action{flex:1;font-size:15px}
+.timeline-action strong{color:#111827}
+.timeline-sub{font-size:13px;color:var(--gray);margin-top:3px;padding-left:12px}
+.timeline-item.current{background:#fef3c7;border-radius:8px;padding:10px;margin:-2px -4px}
+
+.role-table{width:100%;border-collapse:collapse;font-size:15px;margin-top:8px}
+.role-table td{padding:10px 6px;border-bottom:1px solid #e5e7eb}
+.role-table td:first-child{font-weight:700;width:35%;color:var(--red)}
+
+/* Chronology guide */
+.chrono-guide{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-top:10px}
+.chrono-guide h4{font-size:13px;color:var(--green);margin-bottom:6px}
+.chrono-table{width:100%;border-collapse:collapse;font-size:12px}
+.chrono-table th{background:var(--green);color:#fff;padding:5px 6px;text-align:left;font-weight:700}
+.chrono-table td{padding:5px 6px;border-bottom:1px solid #d1fae5}
+.chrono-table tr:last-child td{border-bottom:none}
+
+/* NG Response */
+.ng-item{border-bottom:1px solid #e5e7eb;padding:14px 0}
+.ng-item:last-child{border-bottom:none}
+.ng-item.highlighted{background:var(--red-light);margin:0 -16px;padding:14px 16px;border-radius:8px}
+.ng-label{font-weight:800;font-size:16px;margin-bottom:8px}
+.ng-do{font-size:15px;padding:8px 0 8px 10px;border-left:3px solid var(--green)}
+.ng-dont{font-size:15px;padding:8px 0 8px 10px;border-left:3px solid var(--red);margin-top:6px;color:var(--red);font-weight:600}
+
+/* Rules */
+.rule-item{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid #f3f4f6;align-items:baseline}
+.rule-item:last-child{border-bottom:none}
+.rule-icon{font-size:20px;flex-shrink:0}
+.rule-text{font-size:16px;font-weight:600}
+
+/* Bottom Nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e7eb;display:flex;z-index:100;box-shadow:0 -2px 8px rgba(0,0,0,.08)}
+.bottom-nav button{flex:1;border:none;background:none;padding:10px 4px 8px;font-size:11px;color:var(--gray);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:600}
+.bottom-nav button.active{color:var(--red)}
+.bottom-nav button .icon{font-size:22px}
+
+/* Views */
+.view{display:none}
+.view.active{display:block}
+
+/* Report */
+.report-session{background:#fff;border-radius:10px;margin:12px 16px;padding:16px;box-shadow:var(--shadow)}
+.report-session h3{font-size:16px;margin-bottom:10px;color:var(--red)}
+.report-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:14px}
+.report-row:last-child{border-bottom:none}
+.report-status{font-weight:700;padding:3px 10px;border-radius:4px;font-size:12px}
+.report-status.ok{background:var(--green-light);color:var(--green)}
+.report-status.ng{background:var(--red-light);color:var(--red)}
+.report-status.unchecked{background:#f3f4f6;color:var(--gray)}
+.export-btn{display:block;width:calc(100% - 32px);margin:12px 16px;padding:16px;border:2px solid var(--red);background:var(--red);color:#fff;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer}
+.export-btn:active{background:#991b1b;color:#fff}
+
+/* Chronology report section */
+.chrono-section{margin-top:16px;border-top:2px solid #e5e7eb;padding-top:12px}
+.chrono-section h4{font-size:15px;color:var(--red);margin-bottom:8px}
+.chrono-entry{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
+.chrono-entry input,.chrono-entry select{font-size:13px;padding:7px;border:1px solid #d1d5db;border-radius:6px;font-family:inherit}
+.chrono-entry input[type="time"]{width:84px}
+.chrono-entry input[type="text"]{flex:1;min-width:80px}
+.chrono-entry .chrono-del{background:var(--red-light);color:var(--red);border:1px solid #fca5a5;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:13px;font-weight:700}
+.add-chrono-btn{display:block;width:100%;padding:12px;border:2px dashed #d1d5db;background:#fff;color:var(--gray);border-radius:8px;font-size:14px;cursor:pointer;margin-top:8px}
+.add-chrono-btn:active{background:#f3f4f6}
+
+/* QR */
+.qr-container{text-align:center;padding:24px 16px}
+.qr-container img{max-width:200px;border-radius:8px;border:4px solid #e5e7eb}
+.qr-url{font-size:12px;color:var(--gray);word-break:break-all;margin-top:12px;padding:8px;background:#f3f4f6;border-radius:6px}
+.qr-note{font-size:13px;color:var(--gray);margin-top:8px}
+
+/* Reset */
+.reset-area{margin:24px 16px;text-align:center}
+.reset-btn{padding:14px 32px;border:2px solid #d1d5db;background:#fff;color:var(--gray);border-radius:8px;font-size:14px;cursor:pointer}
+.reset-btn:active{background:#f3f4f6}
+
+/* Offline badge */
+.offline-badge{display:none;position:fixed;top:54px;left:50%;transform:translateX(-50%);background:#f59e0b;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;z-index:200}
+body.offline .offline-badge{display:block}
+
+/* Print styles for PDF export */
+@media print{
+  body{padding-bottom:0;background:#fff;font-size:12px}
+  .header{position:static;box-shadow:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .bottom-nav,.declare-btn,.check-btns,.export-btn,.reset-area,.offline-badge,.add-chrono-btn,.chrono-del{display:none !important}
+  .view{display:block !important}
+  .view#view-qr{display:none !important}
+  .card{box-shadow:none;border:1px solid #d1d5db;break-inside:avoid;margin:8px 0}
+  .card-body{padding:8px}
+  .immunity-box{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .check-num,.section-tag,.badge,.report-status,.btn-ok.selected,.btn-ng.selected{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .chrono-entry input,.chrono-entry select{border:none;padding:2px;font-size:11px}
+  .report-session{box-shadow:none;border:1px solid #d1d5db;margin:8px 0}
+  .timeline-item.current{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .ng-item.highlighted{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .chrono-guide{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .check-section-label{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+
+<div class="offline-badge">オフライン動作中</div>
+
+<!-- Header -->
+<div class="header">
+  <h1>超軽量アクションカード v2.0</h1>
+  <div class="timer inactive" id="timer">--:--</div>
+</div>
+
+<!-- ===== VIEW: CARD ===== -->
+<div class="view active" id="view-card">
+
+  <!-- Declaration Button — amber/orange to stand out -->
+  <button class="declare-btn ready" id="declareBtn" onclick="toggleDeclaration()">
+    <span class="btn-main">発災宣言</span>
+    <span class="btn-sub">発災した場合はここをタップしてください</span>
+  </button>
+
+  <!-- SECTION 0 -->
+  <div class="card">
+    <div class="card-header"><span class="section-tag">SECTION 0</span> あなたの権限と免責</div>
+    <div class="card-body">
+      <div class="immunity-box">
+        <div class="badge">このカードはあなたの免責証明書です</div>
+
+        <h3>事前委任済みの権限</h3>
+        <table class="auth-table">
+          <tr><td>発災宣言</td><td>当直医が単独で可</td></tr>
+          <tr><td>患者避難</td><td>当直医＋看護師リーダーの合意で可</td></tr>
+          <tr><td>外部支援要請</td><td>当直医が判断で可</td></tr>
+          <tr><td>EMIS入力</td><td>当直事務が実施可</td></tr>
+        </table>
+
+        <div class="exemption">
+          緊急時に善意で行った判断・行動は、結果が最善でなかった場合でも、懲戒・人事評価の対象としない。<br>
+          <strong>「空振り」は正しい判断である。</strong><br>
+          <small style="color:var(--gray)">※本条項は「善きサマリア人の法」の精神に基づく。</small>
+        </div>
+
+        <div style="margin-top:10px">
+          <div class="rule-row"><span class="label">病院幹部に連絡がつかない</span><span class="value">＝ 委任済み</span></div>
+          <div class="rule-row"><span class="label">指示を待って、動き出さないこと</span><span class="value">＝ 唯一の禁止事項</span></div>
+        </div>
+
+        <div class="sign-line">
+          <div class="sign-field">
+            <label>院長署名</label>
+            <input type="text" id="signName" placeholder="自筆で記入" oninput="saveSignature()">
+          </div>
+          <div class="sign-field">
+            <label>日付</label>
+            <input type="date" id="signDate" oninput="saveSignature()">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: 10分アクション + 5項目チェック統合 -->
+  <div class="card">
+    <div class="card-header"><span class="section-tag orange">SECTION 1</span> 10分アクション（Phase 0）</div>
+    <div class="card-body" style="padding-bottom:0">
+      <div id="timeline">
+        <div class="timeline-item" data-min="0">
+          <div class="timeline-time">0分</div>
+          <div class="timeline-action">揺れ／異変を感知</div>
+        </div>
+        <div class="timeline-item" data-min="1">
+          <div class="timeline-time">1分</div>
+          <div class="timeline-action">自分の安全確保。周囲を見渡す</div>
+        </div>
+        <div class="timeline-item" data-min="2">
+          <div class="timeline-time">2分</div>
+          <div class="timeline-action">
+            当直医が発災宣言を行うか判断
+            <div class="timeline-sub">→ 震度5弱以上 or インフラ停止 → <strong>発災宣言</strong></div>
+            <div class="timeline-sub">→ 分からない → <strong>迷ったら宣言（空振りOK）</strong></div>
+            <div class="timeline-sub" style="color:var(--red);font-weight:700">→ 発災宣言をしたら、災害BOXを開けてアクションカードを見る</div>
+          </div>
+        </div>
+        <div class="timeline-item" data-min="3">
+          <div class="timeline-time">3〜5分</div>
+          <div class="timeline-action"><strong>5項目チェック実施</strong>（下記のチェックリストを使用）</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5項目チェック（タイムライン3〜5分に埋め込み） -->
+    <div class="check-section-label">3〜5分：発災直後チェック（5項目）</div>
+    <div id="checkList" style="padding:0">
+      <div class="check-item" data-id="danger">
+        <div class="check-top">
+          <div class="check-num" data-num="danger">1</div>
+          <div class="check-info">
+            <div class="check-name">場の危険性はないか</div>
+            <div class="check-method">火災・倒壊など、その場に留まれるかを目視確認</div>
+            <div class="check-who">担当：誰でも</div>
+            <div class="check-time" data-time="danger"></div>
+          </div>
+        </div>
+        <div class="check-btns">
+          <button class="btn-ok" onclick="setCheck('danger','OK',this)">OK</button>
+          <button class="btn-ng" onclick="setCheck('danger','NG',this)">NG</button>
+        </div>
+      </div>
+      <div class="check-item" data-id="patients">
+        <div class="check-top">
+          <div class="check-num" data-num="patients">2</div>
+          <div class="check-info">
+            <div class="check-name">重症患者は安全か</div>
+            <div class="check-method">人工呼吸器装着・透析中の患者を各病棟夜勤者に確認指示</div>
+            <div class="check-who">担当：看護師リーダー</div>
+            <div class="check-time" data-time="patients"></div>
+          </div>
+        </div>
+        <div class="check-btns">
+          <button class="btn-ok" onclick="setCheck('patients','OK',this)">OK</button>
+          <button class="btn-ng" onclick="setCheck('patients','NG',this)">NG</button>
+        </div>
+      </div>
+      <div class="check-item" data-id="electric">
+        <div class="check-top">
+          <div class="check-num" data-num="electric">3</div>
+          <div class="check-info">
+            <div class="check-name">電気は来ているか</div>
+            <div class="check-method">非常灯の点灯を目視</div>
+            <div class="check-who">担当：誰でも</div>
+            <div class="check-time" data-time="electric"></div>
+          </div>
+        </div>
+        <div class="check-btns">
+          <button class="btn-ok" onclick="setCheck('electric','OK',this)">OK</button>
+          <button class="btn-ng" onclick="setCheck('electric','NG',this)">NG</button>
+        </div>
+      </div>
+      <div class="check-item" data-id="water">
+        <div class="check-top">
+          <div class="check-num" data-num="water">4</div>
+          <div class="check-info">
+            <div class="check-name">水は出るか</div>
+            <div class="check-method">最寄りの蛇口をひねる</div>
+            <div class="check-who">担当：誰でも</div>
+            <div class="check-time" data-time="water"></div>
+          </div>
+        </div>
+        <div class="check-btns">
+          <button class="btn-ok" onclick="setCheck('water','OK',this)">OK</button>
+          <button class="btn-ng" onclick="setCheck('water','NG',this)">NG</button>
+        </div>
+      </div>
+      <div class="check-item" data-id="oxygen">
+        <div class="check-top">
+          <div class="check-num" data-num="oxygen">5</div>
+          <div class="check-info">
+            <div class="check-name">酸素は来ているか</div>
+            <div class="check-method">最寄りアウトレットの供給圧を確認</div>
+            <div class="check-who">担当：看護師</div>
+            <div class="check-time" data-time="oxygen"></div>
+          </div>
+        </div>
+        <div class="check-btns">
+          <button class="btn-ok" onclick="setCheck('oxygen','OK',this)">OK</button>
+          <button class="btn-ng" onclick="setCheck('oxygen','NG',this)">NG</button>
+        </div>
+      </div>
+    </div>
+    <div class="check-result" id="checkResult" style="display:none"></div>
+
+    <!-- タイムライン続き 5分〜 -->
+    <div class="card-body" style="padding-top:0">
+      <div id="timeline2">
+        <div class="timeline-item" data-min="5">
+          <div class="timeline-time">5分</div>
+          <div class="timeline-action">
+            ナースステーションに全員集合<br>
+            <strong>→ 口頭で結果共有。ここが本部。</strong><br>
+            <strong>→ クロノロジー（時系列記録）開始</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- クロノロジー書き方ガイド -->
+      <div class="chrono-guide">
+        <h4>クロノロジーの書き方</h4>
+        <table class="chrono-table">
+          <tr>
+            <th>時刻</th><th>発信</th><th>受信</th><th>内容</th><th>指示</th><th>特記</th>
+          </tr>
+          <tr>
+            <td>02:15</td><td>当直医</td><td>全員</td><td>発災宣言</td><td>5項目チェック開始</td><td>震度6</td>
+          </tr>
+          <tr>
+            <td>02:20</td><td>看護師</td><td>当直医</td><td>3階酸素NG</td><td>ボンベ切替</td><td>患者2名</td>
+          </tr>
+        </table>
+      </div>
+
+      <div id="timeline3" style="margin-top:12px">
+        <div class="timeline-item" data-min="6">
+          <div class="timeline-time">6〜8分</div>
+          <div class="timeline-action"><strong>1人1アクション開始</strong>（下表）</div>
+        </div>
+      </div>
+
+      <h4 style="margin-top:16px;font-size:15px;color:var(--red)">6〜8分：役割分担</h4>
+      <table class="role-table">
+        <tr><td>当直医師</td><td>全体把握・外部連絡判断</td></tr>
+        <tr><td>看護師リーダー</td><td>重症患者の継続ケア指示</td></tr>
+        <tr><td>看護師</td><td>全患者の安否巡回</td></tr>
+        <tr><td>施設管理</td><td>発電機／受水槽／ガス確認</td></tr>
+        <tr><td>当直事務</td><td>クロノロジー・参集連絡</td></tr>
+      </table>
+
+      <!-- 10分：役割分担の後に配置 -->
+      <div id="timeline4" style="margin-top:12px">
+        <div class="timeline-item" data-min="10">
+          <div class="timeline-time">10分</div>
+          <div class="timeline-action">本部に状況報告<br><strong>→ Phase 1（増援到着）を待つ</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: NGが出たときの即時対応 -->
+  <div class="card">
+    <div class="card-header"><span class="section-tag">SECTION 2</span> NGが出たときの即時対応</div>
+    <div class="card-body" id="ngSection">
+      <div class="ng-item" data-ng="danger">
+        <div class="ng-label">1. 場の危険性</div>
+        <div class="ng-do">火災の有無を確認。倒壊リスクがあれば安全な場所へ即移動</div>
+        <div class="ng-dont">危険な場所に留まるな。単独で確認に行くな</div>
+      </div>
+      <div class="ng-item" data-ng="patients">
+        <div class="ng-label">2. 重症患者</div>
+        <div class="ng-do">人工呼吸器装着患者→赤コンセントに接続を確認し、異常があれば、酸素ボンベとアンビューバッグを準備</div>
+        <div class="ng-dont">1人で患者搬送を始めるな</div>
+      </div>
+      <div class="ng-item" data-ng="electric">
+        <div class="ng-label">3. 電気</div>
+        <div class="ng-do">施設管理者は発電機室へ行き「運転中」ランプを確認 → 消灯なら手動起動</div>
+        <div class="ng-dont">電気設備に素人が触るな</div>
+      </div>
+      <div class="ng-item" data-ng="water">
+        <div class="ng-label">4. 水</div>
+        <div class="ng-do">施設管理者は節水指示を発令。透析中患者がいれば医師に即報告</div>
+        <div class="ng-dont">受水槽残量を知らずに楽観するな</div>
+      </div>
+      <div class="ng-item" data-ng="oxygen">
+        <div class="ng-label">5. 酸素</div>
+        <div class="ng-do">携帯ボンベの在庫確認。人工呼吸器装着患者をボンベに切替準備</div>
+        <div class="ng-dont">配管修理を試みるな</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: 判断の鉄則 -->
+  <div class="card">
+    <div class="card-header"><span class="section-tag gray">SECTION 3</span> 判断の鉄則</div>
+    <div class="card-body">
+      <div class="rule-item"><span class="rule-icon">❶</span><span class="rule-text">迷ったら「上のレベル」で対応する</span></div>
+      <div class="rule-item"><span class="rule-icon">❷</span><span class="rule-text">連絡がつかない ＝ 委任済みと判断する</span></div>
+      <div class="rule-item"><span class="rule-icon">❸</span><span class="rule-text">空振りは正しい。見逃しは許されない</span></div>
+      <div class="rule-item"><span class="rule-icon">❹</span><span class="rule-text">事後報告で十分。初動停止は唯一の禁止事項</span></div>
+      <div class="rule-item"><span class="rule-icon">❺</span><span class="rule-text" style="color:var(--red)">あなたの善意の判断は、組織が守る</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VIEW: REPORT ===== -->
+<div class="view" id="view-report">
+  <div class="report-session" id="reportContent">
+    <h3>チェック記録</h3>
+    <p style="color:var(--gray);font-size:14px">発災宣言後にチェック記録が表示されます。</p>
+  </div>
+
+  <!-- クロノロジー入力欄 -->
+  <div class="report-session">
+    <div class="chrono-section" style="border-top:none;padding-top:0">
+      <h4>クロノロジー（時系列記録）</h4>
+      <div id="chronoEntries"></div>
+      <button class="add-chrono-btn" onclick="addChronoEntry()">＋ 記録を追加</button>
+    </div>
+  </div>
+
+  <button class="export-btn" onclick="exportPdf()">PDFとして記録を出力</button>
+
+  <div style="margin:16px;font-size:13px;color:var(--gray)">
+    ※オフライン時もデータは端末内に保存されます。<br>
+    　オンライン復帰後に出力・共有が可能です。
+  </div>
+
+  <div class="reset-area">
+    <button class="reset-btn" onclick="confirmReset()">セッションをリセット</button>
+  </div>
+</div>
+
+<!-- ===== VIEW: QR ===== -->
+<div class="view" id="view-qr">
+  <div class="card">
+    <div class="card-header">QRコード</div>
+    <div class="card-body">
+      <div class="qr-container">
+        <div id="qrCanvas" style="display:inline-block;padding:16px;background:#fff;border-radius:12px;border:3px solid #e5e7eb"></div>
+        <div class="qr-url" id="qrUrlDisplay" style="margin-top:12px"></div>
+        <button style="margin-top:12px;padding:10px 18px;border:1px solid #d1d5db;background:#fff;border-radius:6px;font-size:14px;cursor:pointer" onclick="copyUrl()">URLをコピー</button>
+        <div class="qr-note">このQRコードを印刷して災害BOX・当直室に設置してください</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Navigation -->
+<div class="bottom-nav">
+  <button class="active" onclick="switchView('card',this)">
+    <span class="icon">📋</span>カード
+  </button>
+  <button onclick="switchView('report',this)">
+    <span class="icon">📊</span>記録
+  </button>
+  <button onclick="switchView('qr',this)">
+    <span class="icon">📱</span>QR
+  </button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+// ===== State =====
+const ITEMS = ['danger','patients','electric','water','oxygen'];
+const ITEM_NAMES = {danger:'場の危険性',patients:'重症患者',electric:'電気',water:'水',oxygen:'酸素'};
+let state = loadState();
+
+function defaultState(){
+  return {declared:false, declareTime:null, checks:{}, chronology:[], version:'2.0'};
+}
+
+function loadState(){
+  try{
+    const s = localStorage.getItem('actioncard_state');
+    if(s){
+      const parsed = JSON.parse(s);
+      if(!parsed.chronology) parsed.chronology = [];
+      return parsed;
+    }
+    return defaultState();
+  }catch(e){ return defaultState(); }
+}
+
+function saveState(){
+  try{ localStorage.setItem('actioncard_state', JSON.stringify(state)); }catch(e){}
+}
+
+// ===== Declaration =====
+let timerInterval = null;
+
+function toggleDeclaration(){
+  if(state.declared){return;}
+  state.declared = true;
+  state.declareTime = new Date().toISOString();
+  saveState();
+  updateDeclareUI();
+  startTimer();
+}
+
+function updateDeclareUI(){
+  const btn = document.getElementById('declareBtn');
+  if(state.declared){
+    const t = new Date(state.declareTime);
+    btn.className = 'declare-btn active';
+    btn.innerHTML = '発災宣言済み — ' + formatTime(t);
+    btn.disabled = true;
+    startTimer();
+  }
+}
+
+function startTimer(){
+  if(!state.declared) return;
+  if(timerInterval) clearInterval(timerInterval);
+  const timerEl = document.getElementById('timer');
+  timerEl.className = 'timer';
+  function update(){
+    const elapsed = Math.floor((Date.now() - new Date(state.declareTime).getTime())/1000);
+    const m = Math.floor(elapsed/60);
+    const s = elapsed%60;
+    timerEl.textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    highlightTimeline(m);
+  }
+  update();
+  timerInterval = setInterval(update, 1000);
+}
+
+function highlightTimeline(min){
+  const items = document.querySelectorAll('.timeline-item');
+  items.forEach(item=>{
+    item.classList.remove('current');
+    const m = parseInt(item.dataset.min);
+    if(min >= m){
+      let next = item.nextElementSibling;
+      while(next && !next.classList.contains('timeline-item')) next = next.nextElementSibling;
+      if(!next){
+        const containers = ['timeline','timeline2','timeline3','timeline4'];
+        const parent = item.parentElement;
+        const parentIdx = containers.indexOf(parent.id);
+        if(parentIdx >= 0){
+          for(let i = parentIdx+1; i < containers.length; i++){
+            const c = document.getElementById(containers[i]);
+            if(c){
+              next = c.querySelector('.timeline-item');
+              if(next) break;
+            }
+          }
+        }
+      }
+      const nextM = next ? parseInt(next.dataset.min) : 999;
+      if(min < nextM) item.classList.add('current');
+    }
+  });
+}
+
+// ===== Checks =====
+function setCheck(id, status, btn){
+  const now = new Date();
+  const existing = state.checks[id];
+
+  if(existing && existing.status === status){
+    delete state.checks[id];
+    btn.classList.remove('selected');
+  } else {
+    state.checks[id] = {status, time: now.toISOString()};
+    const item = btn.closest('.check-item');
+    item.querySelectorAll('button').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+  saveState();
+  updateCheckUI();
+  updateNgHighlight();
+}
+
+function updateCheckUI(){
+  const dt = state.declared ? new Date(state.declareTime) : null;
+  ITEMS.forEach(id=>{
+    const check = state.checks[id];
+    const timeEl = document.querySelector(`[data-time="${id}"]`);
+    const numEl = document.querySelector(`[data-num="${id}"]`);
+    if(check){
+      const t = new Date(check.time);
+      let label = check.status + ' — ' + formatTime(t);
+      if(dt){
+        const sec = Math.floor((t - dt)/1000);
+        label += '（発災+' + formatElapsed(sec) + '）';
+      }
+      timeEl.textContent = label;
+      if(numEl){numEl.classList.remove('ok','ng');numEl.classList.add(check.status==='OK'?'ok':'ng');}
+      const item = document.querySelector(`[data-id="${id}"]`);
+      item.querySelectorAll('button').forEach(b=>{
+        b.classList.remove('selected');
+        if((b.classList.contains('btn-ok') && check.status==='OK') ||
+           (b.classList.contains('btn-ng') && check.status==='NG')){
+          b.classList.add('selected');
+        }
+      });
+    } else {
+      timeEl.textContent = '';
+      if(numEl){numEl.classList.remove('ok','ng');}
+      const item = document.querySelector(`[data-id="${id}"]`);
+      if(item) item.querySelectorAll('button').forEach(b=>b.classList.remove('selected'));
+    }
+  });
+
+  const resultEl = document.getElementById('checkResult');
+  const checkedCount = Object.keys(state.checks).length;
+  if(checkedCount === 5){
+    const hasNg = Object.values(state.checks).some(c=>c.status==='NG');
+    resultEl.style.display = 'block';
+    if(hasNg){
+      resultEl.className = 'check-result has-ng';
+      resultEl.textContent = 'NGあり → SECTION 2 を確認してください';
+    } else {
+      resultEl.className = 'check-result all-ok';
+      resultEl.textContent = '全てOK → 経過観察';
+    }
+  } else {
+    resultEl.style.display = 'none';
+  }
+}
+
+function updateNgHighlight(){
+  document.querySelectorAll('.ng-item').forEach(el=>{
+    const id = el.dataset.ng;
+    const check = state.checks[id];
+    el.classList.toggle('highlighted', check && check.status === 'NG');
+  });
+}
+
+// ===== Navigation =====
+function switchView(view, btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(view==='report') updateReport();
+}
+
+// ===== Report =====
+function updateReport(){
+  const el = document.getElementById('reportContent');
+  if(!state.declared){
+    el.innerHTML = '<h3>チェック記録</h3><p style="color:var(--gray);font-size:14px">発災宣言後にチェック記録が表示されます。</p>';
+    return;
+  }
+
+  const dt = new Date(state.declareTime);
+  const now = new Date();
+  const totalElapsed = Math.floor((now - dt)/1000);
+
+  let html = '<h3>チェック記録</h3>';
+  html += `<div class="report-row" style="flex-direction:column;gap:2px">
+    <span style="font-weight:700;font-size:15px">発災宣言: ${formatDateTime(dt)}</span>
+    <span style="font-size:13px;color:var(--orange)">現在 発災から ${formatElapsed(totalElapsed)} 経過</span>
+  </div>`;
+
+  ITEMS.forEach(id=>{
+    const check = state.checks[id];
+    const name = ITEM_NAMES[id];
+    if(check){
+      const t = new Date(check.time);
+      const sec = Math.floor((t - dt)/1000);
+      const cls = check.status === 'OK' ? 'ok' : 'ng';
+      html += `<div class="report-row" style="flex-direction:column;gap:2px;align-items:flex-start">
+        <span style="display:flex;align-items:center;gap:6px">
+          <span class="report-status ${cls}">${check.status}</span>
+          <strong>${name}</strong>
+        </span>
+        <span style="font-size:13px;color:var(--gray);padding-left:4px">
+          報告時刻 ${formatTime(t)}　｜　発災から +${formatElapsed(sec)}
+        </span>
+      </div>`;
+    } else {
+      html += `<div class="report-row"><span><strong>${name}</strong></span><span class="report-status unchecked">未確認</span></div>`;
+    }
+  });
+
+  el.innerHTML = html;
+}
+
+// ===== Chronology =====
+function addChronoEntry(data){
+  const container = document.getElementById('chronoEntries');
+  const idx = container.children.length;
+  const now = new Date();
+  const defaultTime = data ? data.time : String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+
+  const div = document.createElement('div');
+  div.className = 'chrono-entry';
+  div.dataset.idx = idx;
+  div.innerHTML = `
+    <input type="time" value="${data ? data.time : defaultTime}" onchange="saveChronology()" placeholder="時刻">
+    <input type="text" value="${data ? data.from : ''}" onchange="saveChronology()" placeholder="発信" style="max-width:60px">
+    <input type="text" value="${data ? data.to : ''}" onchange="saveChronology()" placeholder="受信" style="max-width:60px">
+    <input type="text" value="${data ? data.content : ''}" onchange="saveChronology()" placeholder="内容">
+    <input type="text" value="${data ? data.instruction : ''}" onchange="saveChronology()" placeholder="指示">
+    <input type="text" value="${data ? data.note : ''}" onchange="saveChronology()" placeholder="特記" style="max-width:60px">
+    <button class="chrono-del" onclick="deleteChronoEntry(this)">×</button>
+  `;
+  container.appendChild(div);
+  if(!data) saveChronology();
+}
+
+function deleteChronoEntry(btn){
+  btn.closest('.chrono-entry').remove();
+  saveChronology();
+}
+
+function saveChronology(){
+  const entries = document.querySelectorAll('.chrono-entry');
+  state.chronology = [];
+  entries.forEach(entry=>{
+    const inputs = entry.querySelectorAll('input');
+    state.chronology.push({
+      time: inputs[0].value,
+      from: inputs[1].value,
+      to: inputs[2].value,
+      content: inputs[3].value,
+      instruction: inputs[4].value,
+      note: inputs[5].value
+    });
+  });
+  saveState();
+}
+
+function loadChronology(){
+  const container = document.getElementById('chronoEntries');
+  container.innerHTML = '';
+  if(state.chronology && state.chronology.length > 0){
+    state.chronology.forEach(entry=>addChronoEntry(entry));
+  }
+}
+
+// ===== PDF Export =====
+function exportPdf(){
+  if(!state.declared){alert('発災宣言がまだ行われていません。');return;}
+  updateReport();
+
+  const views = document.querySelectorAll('.view');
+  const wasActive = document.querySelector('.view.active');
+
+  views.forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-report').classList.add('active');
+  document.getElementById('view-card').classList.add('active');
+
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{
+      views.forEach(v=>v.classList.remove('active'));
+      if(wasActive) wasActive.classList.add('active');
+    }, 500);
+  }, 100);
+}
+
+// ===== Reset =====
+function confirmReset(){
+  if(confirm('セッションをリセットしますか？\nすべてのチェック記録とクロノロジーが消去されます。')){
+    state = defaultState();
+    saveState();
+    if(timerInterval) clearInterval(timerInterval);
+    document.getElementById('timer').textContent = '--:--';
+    document.getElementById('timer').className = 'timer inactive';
+    const btn = document.getElementById('declareBtn');
+    btn.className = 'declare-btn ready';
+    btn.innerHTML = '<span class="btn-main">発災宣言</span><span class="btn-sub">発災した場合はここをタップしてください</span>';
+    btn.disabled = false;
+    document.getElementById('checkResult').style.display = 'none';
+    document.getElementById('chronoEntries').innerHTML = '';
+    updateCheckUI();
+    updateNgHighlight();
+    updateReport();
+    switchView('card', document.querySelector('.bottom-nav button'));
+  }
+}
+
+// ===== QR =====
+function initQr(){
+  const url = location.href;
+  document.getElementById('qrUrlDisplay').textContent = url;
+
+  const container = document.getElementById('qrCanvas');
+  container.innerHTML = '';
+
+  if(typeof QRCode !== 'undefined'){
+    new QRCode(container, {
+      text: url,
+      width: 280,
+      height: 280,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } else {
+    // Fallback: external API
+    const img = document.createElement('img');
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(url)}`;
+    img.alt = 'QR Code';
+    img.style.width = '280px';
+    img.style.height = '280px';
+    container.appendChild(img);
+  }
+}
+
+function copyUrl(){
+  const url = location.href;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(()=>alert('URLをコピーしました'));
+  } else {
+    prompt('URLをコピーしてください:',url);
+  }
+}
+
+// ===== Utilities =====
+function formatTime(d){
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+}
+function formatDateTime(d){
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${formatTime(d)}`;
+}
+function formatElapsed(totalSec){
+  if(totalSec < 0) totalSec = 0;
+  const h = Math.floor(totalSec/3600);
+  const m = Math.floor((totalSec%3600)/60);
+  const s = totalSec%60;
+  if(h > 0) return `${h}時間${m}分${s}秒`;
+  return `${m}分${s}秒`;
+}
+
+// ===== Offline Detection =====
+function updateOnlineStatus(){
+  document.body.classList.toggle('offline', !navigator.onLine);
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+// ===== Signature (persists across sessions) =====
+function saveSignature(){
+  const name = document.getElementById('signName').value;
+  const date = document.getElementById('signDate').value;
+  try{ localStorage.setItem('actioncard_sign', JSON.stringify({name,date})); }catch(e){}
+  updateSignatureStyle();
+}
+
+function loadSignature(){
+  try{
+    const s = localStorage.getItem('actioncard_sign');
+    if(s){
+      const d = JSON.parse(s);
+      document.getElementById('signName').value = d.name || '';
+      document.getElementById('signDate').value = d.date || '';
+    }
+  }catch(e){}
+  updateSignatureStyle();
+}
+
+function updateSignatureStyle(){
+  const nameEl = document.getElementById('signName');
+  const dateEl = document.getElementById('signDate');
+  nameEl.classList.toggle('filled', nameEl.value.length > 0);
+  dateEl.classList.toggle('filled', dateEl.value.length > 0);
+}
+
+// ===== Init =====
+window.addEventListener('DOMContentLoaded', ()=>{
+  updateOnlineStatus();
+
+  if(state.declared){
+    updateDeclareUI();
+  }
+  updateCheckUI();
+  updateNgHighlight();
+  loadSignature();
+  loadChronology();
+  updateReport();
+  initQr();
+
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+});
+</script>
+</body>
+</html>

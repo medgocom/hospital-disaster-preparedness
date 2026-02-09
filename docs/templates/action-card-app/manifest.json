@@ -1,0 +1,12 @@
+{
+  "name": "超軽量アクションカード v2.0",
+  "short_name": "アクションカード",
+  "description": "夜間発災 最初の10分 — スマホ1画面で完結する災害初動ツール",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f9fafb",
+  "theme_color": "#b91c1c",
+  "categories": ["medical", "utilities"],
+  "icons": []
+}
